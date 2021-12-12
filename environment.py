@@ -36,7 +36,7 @@ verbose = False
 random_episodes = 1 # all schedulers except dqn runs this number of times
 log_interval_random = 1000 # log the results after this many episodes
 
-min_steps = 20_000
+min_steps = 5999
 max_steps = min_steps + 1
 interval  = 1
 
