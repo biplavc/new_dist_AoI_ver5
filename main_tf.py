@@ -422,7 +422,7 @@ if __name__ == '__main__':
 
     deployments = ["RP"] #, "RP"] #, "MDS"]
     
-    schedulers  = ["random"]  
+    schedulers  = ["random", "greedy", "mad", "omad_greedy_UL", "rr", "pf"]  
     # "random", "greedy", "mad", "omad_greedy_UL", "rr", "pf"
 
     limit_memory = True ## enabling this makes the code not being able to find CUDA device

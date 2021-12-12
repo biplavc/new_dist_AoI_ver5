@@ -552,7 +552,7 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
         # print(f"\n*****************************************************\n")
 
    
-    pickle.dump(age_dist_UAV_slot_wise, open(folder_name + "/" + deployment + "/" + str(I) + "U_mad_age_dist_UAV_slot_wise.pickle", "wb"))
+    # pickle.dump(age_dist_UAV_slot_wise, open(folder_name + "/" + deployment + "/" + str(I) + "U_mad_age_dist_UAV_slot_wise.pickle", "wb"))
     pickle.dump(age_dist_dest_slot_wise, open(folder_name + "/" + deployment + "/" + str(I) + "U_mad_age_dist_dest_slot_wise.pickle", "wb"))
    
     pickle.dump(best_episodes_average, open(folder_name + "/" + deployment + "/" + str(I) + "U_mad_episodes_average.pickle", "wb"))
