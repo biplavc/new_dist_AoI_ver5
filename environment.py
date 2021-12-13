@@ -32,11 +32,11 @@ tempdir = tempfile.gettempdir()
 random.seed(42)
 
 verbose = False
-verbose = True
-random_episodes = 1 # all schedulers except dqn runs this number of times
-log_interval_random = 1000 # log the results after this many episodes
+# verbose = True
+random_episodes = 100 # all schedulers except dqn runs this number of times
+log_interval_random = 1 # log the results after this many episodes
 
-min_steps = 5
+min_steps = 5999
 max_steps = min_steps + 1
 interval  = 1
 
