@@ -78,7 +78,7 @@ def do_scheduling(deployment, I, scheduler):
             
     #####################################       
 
-            topology = "fully_connected" ## options = "ring", "fully_connected", "new_ring" , "new_ring_1_connection"
+            topology = "new_ring" ## options = "ring", "fully_connected", "new_ring" , "new_ring_1_connection"
             
             if topology == "fully_connected": ## each device connected to everyone else
                 adj_matrix = np.ones((I,I))
@@ -422,7 +422,7 @@ if __name__ == '__main__':
 
     deployments = ["RP"] #, "RP"] #, "MDS"]
     
-    schedulers  = ["random", "greedy", "mad", "omad_greedy_UL", "rr", "pf"]  
+    schedulers  = ["random"]  
     # "random", "greedy", "mad", "omad_greedy_UL", "rr", "pf"
 
     limit_memory = True ## enabling this makes the code not being able to find CUDA device
@@ -477,7 +477,7 @@ if __name__ == '__main__':
     
 
     if test_case:
-        users = [14] ##biplav
+        users = [28] ##biplav
     else:
         users = [8,10]
 

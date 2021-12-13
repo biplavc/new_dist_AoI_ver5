@@ -32,11 +32,11 @@ tempdir = tempfile.gettempdir()
 random.seed(42)
 
 verbose = False
-# verbose = True
+verbose = True
 random_episodes = 1 # all schedulers except dqn runs this number of times
 log_interval_random = 1000 # log the results after this many episodes
 
-min_steps = 5999
+min_steps = 5
 max_steps = min_steps + 1
 interval  = 1
 
@@ -284,7 +284,7 @@ class UAV_network():   # network of UAVs not just a single one
             print(f'self.n_users = {self.n_users}, self.n_UAVs = {self.n_UAVs}, self.act_coverage = {self.act_coverage}, self.update_loss_thresh = {self.packet_upload_loss_thresh}, self.sample_loss_thresh = {self.packet_download_loss_thresh}, self.UAV_list = {self.UAV_list}, self.user_list = {self.user_list}')
             # time.sleep(15)
 
-        self.create_action_space() # @ remove_action
+        # self.create_action_space() # @ remove_action
 
         # not doing in initialize_age() as initialize_age() is run every time net is reset so older values will be lost. start_network is run only once
         for i in self.user_list:
