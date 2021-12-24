@@ -49,7 +49,7 @@ def return_links(scheduler, current_ep):
     MAX_EPS = 2001 ## number of times the code
     assert current_ep <=MAX_EPS+1
 
-    SIM_DURATION = 1000 ## milliseconds the code runs in MATLAB
+    SIM_DURATION = 9000 ## milliseconds the code runs in MATLAB
 
     links = {} ## tuple based keys
     ans_dup = {} ## char based keys
@@ -104,7 +104,7 @@ def return_links(scheduler, current_ep):
 
 
 ans = return_links("MAD", 13)
-# ans = return_links("greedy", 1)
-# ans = return_links("random", 1)
-# ans = return_links("round_robin", 1)
+ans = return_links("greedy", 1)
+ans = return_links("random", 1)
+ans = return_links("round_robin", 1)
 # print(ans)

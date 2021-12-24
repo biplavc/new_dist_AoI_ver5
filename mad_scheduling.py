@@ -116,15 +116,7 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
     
     age_dist_UAV =  {} ## stores the episode ending (after MAX_STEPS) age for each user at UAV
     age_dist_dest  =  {} ## stores the episode ending (after MAX_STEPS) age for each pair at destination
-    
-    age_dist_UAV_slot_wise = {} ## stores the average age at each step
-    age_dist_dest_slot_wise = {}
-    
-    for ii in range(1, MAX_STEPS+1):
-        age_dist_UAV_slot_wise[ii] = []
-        age_dist_dest_slot_wise[ii] = []
 
-    
     sample_time = {}
     for ii in periodicity.keys():
         sample_time[ii] = []
@@ -188,7 +180,7 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
             age_dist_UAV.update(eval_env.age_dist_UAV) # age_dist_UAV will have the appropriate keys and values
             age_dist_dest.update(eval_env.age_dist_dest) # age_dist_dest will have the appropriate keys and values ## working 
             
-        eval_env.current_step  = 1            
+        eval_env.current_TTI  = 1            
         for i in eval_env.user_list:
             eval_env.tx_attempt_UAV[i].append(0) # 0 will be changed in _step for every attempt
             # age_dist_UAV[i].append(eval_env.UAV_age[i]) # eval_env.UAV_age has been made to 1 by now
@@ -199,22 +191,21 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
                 
         # for i in range(eval_env.action_size):
         #     eval_env.preference[i].append(0) 
-            
-        for x in range(MAX_STEPS):
+        while eval_env.current_TTI < MAX_STEPS:
             # print(x)
             # print("inside MAD - ", x, " step started")      ## runs MAX_STEPS times       
-            # selected_action = find_mad_action(eval_env, eval_env.current_step)
+            # selected_action = find_mad_action(eval_env, eval_env.current_TTI)
             # all_actions.append(selected_action)
             # # print("all_actions", type(all_actions))
             # eval_env.preference[selected_action][-1] = eval_env.preference[selected_action][-1] + 1
             # action = eval_env.map_actions(selected_action)
             
-            upload_users, download_user_pairs = find_mad_action(eval_env, eval_env.current_step)
+            upload_users, download_user_pairs = find_mad_action(eval_env, eval_env.current_TTI)
 
 
             if verbose:
                 print(f"\n\ncurrent episode = {ep}\n")
-                print(f"slot = {eval_env.current_step} for MAD begins, upload_users = {upload_users}, download_user_pairs = {download_user_pairs}, BS_age = {eval_env.UAV_age}, dest_age = {eval_env.dest_age}\n")                
+                print(f"slot = {eval_env.current_TTI} for MAD begins, upload_users = {upload_users}, download_user_pairs = {download_user_pairs}, BS_age = {eval_env.UAV_age}, dest_age = {eval_env.dest_age}\n")                
                 
             ## downloading is done before uploading as downloading is done on the packets uploaded until the previous slot, so we say that packet uploaded in a slot cannot be downloaded in the same slot.
                 
@@ -227,7 +218,7 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
                 episode_wise_attempt_download = episode_wise_attempt_download + 1
 
                 if verbose:
-                    print(f"\ncurrent slot = {eval_env.current_step}, pair {i} age at the beginning is {eval_env.dest_age[tuple(i)]}")
+                    print(f"\ncurrent slot = {eval_env.current_TTI}, pair {i} age at the beginning is {eval_env.dest_age[tuple(i)]}")
                     
                 received_SNR_download = getSNR(BS_location, user_locations[i[1]])
                 
@@ -272,16 +263,16 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
                             # finish off DL of new packet                            
                             
                             if eval_env.curr_DL_gen[tuple(i)] == -1: ## current packet started DL when BS had nothing 
-                                eval_env.dest_age[tuple(i)] = eval_env.current_step
+                                eval_env.dest_age[tuple(i)] = eval_env.current_TTI
 
                             else: ## current packet started DL after BS had a packet
                                 modulation_order = random.choice(modulation_index)
-                                delay_from_throughput = packet_size/throughputs[modulation_order]*10**(-3)
+                                delay_from_throughput = round(packet_size/throughputs[modulation_order]*10**(-3),6)
                                 # record schedule only if (i) valid packet downloaded (ii) packet fully downloaded
-                                eval_env.dest_age[tuple(i)] = eval_env.current_step + delay_include*delay_from_throughput - eval_env.curr_DL_gen[tuple(i)] # age change after packet fully sent
+                                eval_env.dest_age[tuple(i)] = eval_env.current_TTI + delay_include*delay_from_throughput - eval_env.curr_DL_gen[tuple(i)] # age change after packet fully sent
                                 assert eval_env.dest_age[tuple(i)]>0
                                 if (random_episodes-ep)<100: ##means the last 100 episode                                    
-                                    mad_DL_schedule[tuple(i)].append([ep, eval_env.current_step + delay_from_throughput*delay_include, eval_env.curr_DL_gen[tuple(i)]]) 
+                                    mad_DL_schedule[tuple(i)].append([ep, eval_env.current_TTI + delay_from_throughput*delay_include, eval_env.curr_DL_gen[tuple(i)]]) 
                             eval_env.comp_DL_gen[tuple(i)] = eval_env.curr_DL_gen[tuple(i)]
                             
                             
@@ -292,7 +283,7 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
                         else: # eval_env.RB_pending_DL[tuple(i)] != 0. new packet incomplete DL
                                 
                             if eval_env.comp_DL_gen[tuple(i)] == -1: ## no packet DL till now 
-                                eval_env.dest_age[tuple(i)] = eval_env.current_step  
+                                eval_env.dest_age[tuple(i)] = eval_env.current_TTI  
                                 
                                                           
                             else: ## at least a packet had been downloaded
@@ -315,23 +306,23 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
                         if eval_env.RB_pending_DL[tuple(i)] == 0: # means old packet was fully downloaded in this slot
                             # finish off DL of selected packet
                             if eval_env.curr_DL_gen[tuple(i)] == -1: ## current packet started DL when BS had nothing 
-                                eval_env.dest_age[tuple(i)] = eval_env.current_step
+                                eval_env.dest_age[tuple(i)] = eval_env.current_TTI
                             else: ## current packet started DL after BS had a packet
                                 modulation_order = random.choice(modulation_index)
-                                delay_from_throughput = packet_size/throughputs[modulation_order]*10**(-3)
-                                eval_env.dest_age[tuple(i)] = eval_env.current_step + delay_from_throughput*delay_include - eval_env.curr_DL_gen[tuple(i)] # age change after packet fully sent
+                                delay_from_throughput = round(packet_size/throughputs[modulation_order]*10**(-3),6)
+                                eval_env.dest_age[tuple(i)] = eval_env.current_TTI + delay_from_throughput*delay_include - eval_env.curr_DL_gen[tuple(i)] # age change after packet fully sent
                                 eval_env.comp_DL_gen[tuple(i)] = eval_env.curr_DL_gen[tuple(i)]
                             # older packet done
                             
                                 # record schedule only if (i) valid packet sent (ii) packet fully downloaded
                                 if (random_episodes-ep)<100: ##means the last 100 episode
-                                    mad_DL_schedule[tuple(i)].append([ep, eval_env.current_step  + delay_from_throughput*delay_include, eval_env.curr_DL_gen[tuple(i)]]) 
+                                    mad_DL_schedule[tuple(i)].append([ep, eval_env.current_TTI  + delay_from_throughput*delay_include, eval_env.curr_DL_gen[tuple(i)]]) 
 
                             if verbose:
                                 print(f"pair {i} age at the end is {eval_env.dest_age[tuple(i)]}. old packet fully DL. new values-curr_DL_gen[{i}]={eval_env.curr_DL_gen[tuple(i)]}, comp_DL_gen[{i}]={eval_env.comp_DL_gen[tuple(i)]}, curr_UL_gen[{i[0]}]={eval_env.curr_UL_gen[i[0]]}, comp_UL_gen[{i[0]}]={eval_env.comp_UL_gen[i[0]]}, RB_pending_DL[{i}]={eval_env.RB_pending_DL[tuple(i)]},assigned_RB_DL = {assigned_RB_DL}, remaining_RB_DL={remaining_RB_DL}\n")
                         else: # eval_env.RB_pending_DL[tuple(i)] != 0: # means old packet wasn't fully downloaded in this slot
                             if eval_env.curr_DL_gen[tuple(i)] == -1: ## current packet started DL when BS had nothing 
-                                eval_env.dest_age[tuple(i)] = eval_env.current_step
+                                eval_env.dest_age[tuple(i)] = eval_env.current_TTI
                             else: ## current packet started DL after BS had a packet
                                 eval_env.dest_age[tuple(i)] = eval_env.dest_age[tuple(i)] + 1 # age change after packet fully sent
                                 if verbose:
@@ -342,7 +333,7 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
 
                 else: # no RB remaining
                     if eval_env.curr_DL_gen[tuple(i)] == -1: ## current packet started DL when BS had nothing 
-                        eval_env.dest_age[tuple(i)] = eval_env.current_step
+                        eval_env.dest_age[tuple(i)] = eval_env.current_TTI
                     else: ## current packet started DL after BS had a packet
                         eval_env.dest_age[tuple(i)] = eval_env.dest_age[tuple(i)] + 1 # age change after packet fully sent                    
                     if verbose:
@@ -353,7 +344,7 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
                     if verbose:                
                         print(f"\npair {i} age at the beginning is {eval_env.dest_age[tuple(i)]}")
                     if eval_env.curr_DL_gen[tuple(i)] == -1: ## current packet started DL when BS had nothing 
-                        eval_env.dest_age[tuple(i)] = eval_env.current_step
+                        eval_env.dest_age[tuple(i)] = eval_env.current_TTI
                     else: ## current packet started DL after BS had a packet
                         eval_env.dest_age[tuple(i)] = eval_env.dest_age[tuple(i)] + 1 # age change after packet fully sent                      
                     
@@ -387,16 +378,17 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
                             print(f"user {i} completed UL in its prev attempt. old values-curr_UL_gen[{i}] = {eval_env.curr_UL_gen[i]}, comp_UL_gen[{i}] = {eval_env.comp_UL_gen[i]}, RB_pending_UL[{i}] = {eval_env.RB_pending_UL[i]}, remaining_RB_UL = {remaining_RB_UL}.")
                         
                         # new packet details started
-                        if eval_env.current_step%eval_env.periodicity[i]==0: # generate at will has period 1 so %=0
-                            last_pack_generated = eval_env.current_step  # generation time of the packet sampled now
-                            # print(f"last_pack_generated 1 = {last_pack_generated}. eval_env.current_step%eval_env.periodicity[i]={eval_env.current_step%eval_env.periodicity[i]}")
+                        # if eval_env.current_TTI%eval_env.periodicity[i]==0: # generate at will has period 1 so %=0
+                        if True:
+                            last_pack_generated = eval_env.current_TTI  # generation time of the packet sampled now
+                            # print(f"last_pack_generated 1 = {last_pack_generated}. eval_env.current_TTI%eval_env.periodicity[i]={eval_env.current_TTI%eval_env.periodicity[i]}")
                         else:
-                            last_pack_generated = eval_env.periodicity[i]*max(math.floor(eval_env.current_step/eval_env.periodicity[i]), 1) ## max added so that the result is never 0 as our slots start from 1. so periodicity of 2 means 2,4,6,8
-                            # print(f"last_pack_generated 2 = {last_pack_generated}. eval_env.current_step%eval_env.periodicity[i]={eval_env.current_step%eval_env.periodicity[i]}")
+                            last_pack_generated = eval_env.periodicity[i]*max(math.floor(eval_env.current_TTI/eval_env.periodicity[i]), 1) ## max added so that the result is never 0 as our slots start from 1. so periodicity of 2 means 2,4,6,8
+                            # print(f"last_pack_generated 2 = {last_pack_generated}. eval_env.current_TTI%eval_env.periodicity[i]={eval_env.current_TTI%eval_env.periodicity[i]}")
 
                         
-                        if eval_env.current_step >= last_pack_generated: # else will stay -1
-                            eval_env.curr_UL_gen[i]  = last_pack_generated # eval_env.current_step # sample at will, so new packet generated and sampled only if current time and last generated time is feasible
+                        if eval_env.current_TTI >= last_pack_generated: # else will stay -1
+                            eval_env.curr_UL_gen[i]  = last_pack_generated # eval_env.current_TTI # sample at will, so new packet generated and sampled only if current time and last generated time is feasible
                         
                         if verbose:
                             print(f"last_pack_generated = {last_pack_generated}")                    
@@ -411,16 +403,16 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
                         if eval_env.RB_pending_UL[i] == 0: # means packet was fully uploaded in this slot
                             # finish off details of completed packet
                             if eval_env.curr_UL_gen[i] == -1: ## current packet started UL when device had nothing 
-                                eval_env.UAV_age[i] = eval_env.current_step
+                                eval_env.UAV_age[i] = eval_env.current_TTI
                             else: ## current packet started UL after device had a packet
                                 modulation_order = random.choice(modulation_index)
-                                delay_from_throughput = packet_size/throughputs[modulation_order]*10**(-3)
-                                eval_env.UAV_age[i] = eval_env.current_step + delay_from_throughput*delay_include - eval_env.curr_UL_gen[i] # age change after packet fully sent                        
+                                delay_from_throughput = round(packet_size/throughputs[modulation_order]*10**(-3),6)
+                                eval_env.UAV_age[i] = eval_env.current_TTI + delay_from_throughput*delay_include - eval_env.curr_UL_gen[i] # age change after packet fully sent                        
                                 eval_env.comp_UL_gen[i] = eval_env.curr_UL_gen[i] # no need of multiple cases like DL
                                 
                                 # record schedule only if (i) valid packet upload (ii) packet fully uploaded
                                 if (random_episodes-ep)<100: ##means the last 100 episodes
-                                    mad_UL_schedule[i].append([ep, eval_env.current_step + delay_from_throughput*delay_include, eval_env.curr_UL_gen[i]])
+                                    mad_UL_schedule[i].append([ep, eval_env.current_TTI + delay_from_throughput*delay_include, eval_env.curr_UL_gen[i]])
                          # new packet done
                             
                             if verbose:
@@ -444,16 +436,16 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
                         if eval_env.RB_pending_UL[i] == 0: # means the partial packet was fully uploaded in this slot
                             # finish off details of completed packet
                             if eval_env.curr_UL_gen[i] == -1: ## current packet started UL when device had nothing 
-                                eval_env.UAV_age[i] = eval_env.current_step
+                                eval_env.UAV_age[i] = eval_env.current_TTI
                             else: ## current packet started UL after device had a packet
                                 modulation_order = random.choice(modulation_index)
-                                delay_from_throughput = packet_size/throughputs[modulation_order]*10**(-3)
-                                eval_env.UAV_age[i] = eval_env.current_step + delay_from_throughput*delay_include - eval_env.curr_UL_gen[i] # age change after packet fully sent                        
+                                delay_from_throughput = round(packet_size/throughputs[modulation_order]*10**(-3),6)
+                                eval_env.UAV_age[i] = eval_env.current_TTI + delay_from_throughput*delay_include - eval_env.curr_UL_gen[i] # age change after packet fully sent                        
                                 eval_env.comp_UL_gen[i] = eval_env.curr_UL_gen[i] # no need of multiple cases like DL
                                 
                                 # record schedule only if (i) valid packet upload (ii) packet fully uploaded
                                 if (random_episodes-ep)<100: ##means the last 100 episodes
-                                    mad_UL_schedule[i].append([ep, eval_env.current_step + delay_from_throughput*delay_include, eval_env.curr_UL_gen[i]]) 
+                                    mad_UL_schedule[i].append([ep, eval_env.current_TTI + delay_from_throughput*delay_include, eval_env.curr_UL_gen[i]]) 
 
                             if verbose:
                                 print(f"user {i} age at the end is {eval_env.UAV_age[i]}. old packet fully UL-new values curr_UL_gen[{i}] = {eval_env.curr_UL_gen[i]}, comp_UL_gen[{i}] = {eval_env.comp_UL_gen[i]}, RB_pending_UL[{i}] = {eval_env.RB_pending_UL[i]}, assigned_RB_UL = {assigned_RB_UL}, remaining_RB_UL = {remaining_RB_UL}\n")
@@ -481,24 +473,19 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
                 ## uploading process ends
                 
             if verbose:
-                print(f"\nslot {eval_env.current_step} over. curr_UL_gen = {eval_env.curr_UL_gen}, curr_DL_gen = {eval_env.curr_DL_gen}, comp_UL_gen = {eval_env.comp_UL_gen}, comp_DL_gen = {eval_env.comp_DL_gen}, RB_pending_UL = {eval_env.RB_pending_UL}, RB_pending_DL = {eval_env.RB_pending_DL}, BS_age = {eval_env.UAV_age}, dest_age = {eval_env.dest_age}\n")   
+                print(f"\nslot {eval_env.current_TTI} over. curr_UL_gen = {eval_env.curr_UL_gen}, curr_DL_gen = {eval_env.curr_DL_gen}, comp_UL_gen = {eval_env.comp_UL_gen}, comp_DL_gen = {eval_env.comp_DL_gen}, RB_pending_UL = {eval_env.RB_pending_UL}, RB_pending_DL = {eval_env.RB_pending_DL}, BS_age = {eval_env.UAV_age}, dest_age = {eval_env.dest_age}\n")   
                 
                 if eval_env.curr_UL_gen==eval_env.comp_UL_gen and eval_env.curr_DL_gen==eval_env.comp_DL_gen:
                     print(f"no informative packet pending")
-                    
-            
-            age_dist_dest_slot_wise[eval_env.current_step].append(np.mean(list(eval_env.dest_age.values())))
-            age_dist_UAV_slot_wise[eval_env.current_step].append(np.mean(list(eval_env.UAV_age.values())))
 
-          
-            eval_env.current_step += 1
+            eval_env.current_TTI += 1/2**numerology
             ep_reward = ep_reward + np.sum(list(eval_env.dest_age.values()))
             ep_peak_reward = ep_peak_reward + np.max(list(eval_env.dest_age.values()))
             # if verbose:
             # print(f"ep_peak_reward = {ep_peak_reward} for dest_age = {eval_env.dest_age}")
-
-       
-            if eval_env.current_step==MAX_STEPS:
+            
+            
+            if eval_env.current_TTI + 1/2**numerology == MAX_STEPS:
                 final_reward = np.sum(list(eval_env.dest_age.values()))
                 # print("sum age at dest = ", final_reward)
                 final_UAV_reward = np.sum(list(eval_env.UAV_age.values()))
@@ -510,9 +497,9 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
                 if (random_episodes-ep)<100: ##means the last 100 episodes
                     best_episodes_average[ep] = ep_reward 
                     best_episodes_peak[ep] = ep_peak_reward 
+                break  
 
-   
-    
+
         success_upload.append(episode_wise_success_upload) 
         success_download.append(episode_wise_success_download)
         attempt_upload.append(episode_wise_attempt_upload)
@@ -538,22 +525,20 @@ def mad_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_lo
             age_dist_dest[tuple(i)].append(eval_env.dest_age[tuple(i)]) 
             
        
-        # if verbose:
-        #     print(f"\nage_dist_UAV = {age_dist_UAV}, age_dist_dest = {age_dist_dest}\n")
-            # print(f"results for step {eval_env.current_step} of episode {ep}")
-            # print(f"attempt_download = {attempt_download}")
-            # print(f"success_download = {success_download}")
-            # print(f"attempt_upload = {attempt_upload}")
-            # print(f"success_upload = {success_upload}")
-            # print(f"unutilized_RB_DL = {unutilized_RB_DL}")
-            # print(f"unutilized_RB_UL = {unutilized_RB_UL}")
+        if verbose:
+            print(f"\nage_dist_UAV = {age_dist_UAV}, age_dist_dest = {age_dist_dest}\n")
+            print(f"results for step {eval_env.current_TTI} of episode {ep}")
+            print(f"attempt_download = {attempt_download}")
+            print(f"success_download = {success_download}")
+            print(f"attempt_upload = {attempt_upload}")
+            print(f"success_upload = {success_upload}")
+            print(f"unutilized_RB_DL = {unutilized_RB_DL}")
+            print(f"unutilized_RB_UL = {unutilized_RB_UL}")
             
             # time.sleep(10)
         # print(f"\n*****************************************************\n")
 
-   
-    # pickle.dump(age_dist_UAV_slot_wise, open(folder_name + "/" + deployment + "/" + str(I) + "U_mad_age_dist_UAV_slot_wise.pickle", "wb"))
-    pickle.dump(age_dist_dest_slot_wise, open(folder_name + "/" + deployment + "/" + str(I) + "U_mad_age_dist_dest_slot_wise.pickle", "wb"))
+    # print(f"mad_UL_schedule = {mad_UL_schedule}, mad_DL_schedule = {mad_DL_schedule}")
    
     pickle.dump(best_episodes_average, open(folder_name + "/" + deployment + "/" + str(I) + "U_mad_episodes_average.pickle", "wb"))
     pickle.dump(best_episodes_peak, open(folder_name + "/" + deployment + "/" + str(I) + "U_mad_best_episodes_peak.pickle", "wb"))

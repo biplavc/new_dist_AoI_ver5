@@ -32,21 +32,21 @@ tempdir = tempfile.gettempdir()
 random.seed(42)
 
 verbose = False
-# verbose = True
-random_episodes = 100 # all schedulers except dqn runs this number of times
-log_interval_random = random_episodes//5 # log the results after this many episodes
+verbose = True
+random_episodes = 1 # all schedulers except dqn runs this number of times
+log_interval_random = 1 if random_episodes<5 else random_episodes//5 # log the results after this many episodes
 
-min_steps = 9999
+min_steps = 4
 max_steps = min_steps + 1
 interval  = 1
 
 delay_include = 1 # 0 for slot and 1 to include it
-
-modulation_index  = [0,1,2,3] # simple index to get the index of modulation_index
+numerology = 3
+modulation_index  = [0,1,2] # simple index to get the index of modulation_index
 packet_size       = 64 # bits
-modulation_orders = [2,4,6,8]
-base_throughput = 1.07 # in Mbps
-throughputs = [base_throughput, 2*base_throughput, 3*base_throughput, 4*base_throughput]
+modulation_orders = [4,6,8]
+base_throughput = 136.96 # in Mbps
+throughputs = [base_throughput, 1.5*base_throughput, 2*base_throughput]
 np.set_printoptions(precision=2) # https://stackoverflow.com/questions/12439753/set-global-output-precision-python/38447064
 
 
@@ -55,8 +55,8 @@ MAX_AGE = max_steps + 1 # 20
 coverage_capacity = 3 # max users 1 UAV can cover, used in create_graph_1
 
 set_gamma = 1
-RB_total_UL = 5 # L R_u, sample. has to be less than number of tx_users
-RB_total_DL = 10 # K R_d, update. has to be less than number of tx_rx_pairs
+RB_total_UL = 1 # L R_u, sample. has to be less than number of tx_users
+RB_total_DL = 2 # K R_d, update. has to be less than number of tx_rx_pairs
 
 
 class UAV_network():   # network of UAVs not just a single one
@@ -106,8 +106,8 @@ class UAV_network():   # network of UAVs not just a single one
         agent                : Object class, the DL agent that will be shared among all the UAVs.
         actions              : list, set of actions.
         action_size          : int, number of possible actions.
-        current_step         : step of the ongoing episode. 1 to MAX_STEP
-        episode_step         : int, current step of the ongoing episode. One episode gets over after MAX_STEP number of steps. Note difference with current_step
+        current_TTI          : TTI of the ongoing episode. 1 to MAX_STEP
+        episode_step         : int, current step of the ongoing episode. One episode gets over after MAX_STEP number of steps. Note difference with current_TTI
         preference           : dict, at each index indicated by action is an array and the array has episode wise count of how many times the action was selected. Analogous to visualizing the q-table.
         name                 : string, distinguish between eval and train networks.
         age_dist_UAV         : dict, stores the episode ending age at UAV/BS per user.
@@ -184,7 +184,7 @@ class UAV_network():   # network of UAVs not just a single one
         self.action_size    = 2 # will be updated in start_network()
         self.episode_step   = 0
         self.preference     = {}
-        self.current_step   = 1
+        self.current_TTI    = 1
         self.UAV_age        = {}
         self.UAV_age_new    = {}
         self.dest_age       = {} ## previously BS age
@@ -243,8 +243,7 @@ class UAV_network():   # network of UAVs not just a single one
          
         self.start_network()
 
-        self.state = np.concatenate((list([self.current_step]), [0]*(n_users + len(tx_rx_pairs))), axis=None) #
-            
+        self.state = np.concatenate((list([self.current_TTI]), [0]*(n_users + len(tx_rx_pairs))), axis=None) #
         self.episode_ended = False
         
     
@@ -348,8 +347,8 @@ class UAV_network():   # network of UAVs not just a single one
             for i in range(self.action_size):
                 self.preference[i].append(0) 
                 
-            self.age_dist_dest_slot_wise[self.current_step].append(np.mean(list(self.dest_age.values())))
-            self.age_dist_UAV_slot_wise[self.current_step].append(np.mean(list(self.UAV_age.values())))
+            self.age_dist_dest_slot_wise[self.current_TTI].append(np.mean(list(self.dest_age.values())))
+            self.age_dist_UAV_slot_wise[self.current_TTI].append(np.mean(list(self.UAV_age.values())))
                 
             
             if verbose:
@@ -378,10 +377,10 @@ class UAV_network():   # network of UAVs not just a single one
     def reset(self):
         self.episode_step +=1
 
-        self.state = np.concatenate((list([self.current_step]), [0]*(self.n_users + len(self.tx_rx_pairs))), axis=None) #
+        self.state = np.concatenate((list([self.current_TTI]), [0]*(self.n_users + len(self.tx_rx_pairs))), axis=None) #
    
         self.episode_ended = False
-        self.current_step = 1
+        self.current_TTI = 1
         if verbose:
             print(f'\n{self.name} after reset, episode {self.episode_step} begins with self.state = {self.state} with shape {np.shape(self.state)}\n') 
             # time.sleep(10)
@@ -407,11 +406,7 @@ class UAV_network():   # network of UAVs not just a single one
         state_UAV = np.array(list(self.UAV_age.values()))
         state_dest  = np.array(list(self.dest_age.values()))
 
-        if self.current_step>MAX_AGE:
-            current_step_with_limit = MAX_AGE
-        else:
-            current_step_with_limit = self.current_step
-        state_list = np.concatenate((list([current_step_with_limit]), state_UAV, state_dest), axis=None)
+        state_list = np.concatenate((list([self.current_TTI]), state_UAV, state_dest), axis=None)
         # print(f"state_list = {state_list}")
         state_list = [MAX_AGE if x>MAX_AGE else x for x in state_list]
         # print(f"state_list = {state_list}")
@@ -467,7 +462,7 @@ class UAV_network():   # network of UAVs not just a single one
         # print("\n action_space is of size ", np.shape(self.actions_space), " and they are ", self.actions_space)
     
     def step(self, action):
-        # print("step ", self.current_step, " started") ## runs for MAX_STEPS steps
+        # print("step ", self.current_TTI, " started") ## runs for MAX_STEPS steps
         # each step returns TimeStep(step_type, reward, discount, observation
 
                   
@@ -481,7 +476,7 @@ class UAV_network():   # network of UAVs not just a single one
         actual_action = self.map_actions(action)
         action = action.tolist()
         
-        # print(f"\n env = {self.name}, self.current_step = {self.current_step}, self.episode_step = {self.episode_step}, action = {action}, type(action) = {type(action)}, (actual_action)={actual_action}, preference = {self.preference}") #, {type(self.preference[action])}") ## for some reason action is type nparray
+        # print(f"\n env = {self.name}, self.current_TTI = {self.current_TTI}, self.episode_step = {self.episode_step}, action = {action}, type(action) = {type(action)}, (actual_action)={actual_action}, preference = {self.preference}") #, {type(self.preference[action])}") ## for some reason action is type nparray
         # self.preference[action][-1] = self.preference[action][-1] + 1
             
         download_user_pairs = list(actual_action[1])
@@ -489,7 +484,7 @@ class UAV_network():   # network of UAVs not just a single one
         
         if verbose:
         
-            print(f'\ncurrent_step = {self.current_step}, selected action = {action}, actual_dqn_action={actual_action}, upload_users = {upload_users} sampled_users={download_user_pairs}\n') 
+            print(f'\ncurrent_TTI = {self.current_TTI}, selected action = {action}, actual_dqn_action={actual_action}, upload_users = {upload_users} sampled_users={download_user_pairs}\n') 
             # time.sleep(3)
             
             # print(f"{self.name} tx_attempt_dest was {self.tx_attempt_dest}")
@@ -503,7 +498,7 @@ class UAV_network():   # network of UAVs not just a single one
             self.attempt_download[-1] = self.attempt_download[-1] + 1
             
             if verbose:
-                print(f"\ncurrent slot = {self.current_step}, pair {i} age at the beginning is {self.dest_age[tuple(i)]}")
+                print(f"\ncurrent slot = {self.current_TTI}, pair {i} age at the beginning is {self.dest_age[tuple(i)]}")
 
             received_SNR_download = getSNR(self.BS_location, self.user_locations[i[1]])
             
@@ -546,14 +541,14 @@ class UAV_network():   # network of UAVs not just a single one
                                             
                     if self.RB_pending_DL[tuple(i)] == 0: # means packet was fully downloaded in this slot
                         # finish off DL of new packet
-                        # self.dest_age[tuple(i)] = self.current_step
+                        # self.dest_age[tuple(i)] = self.current_TTI
                         
 
                         ## MOD
                         if self.curr_DL_gen[tuple(i)] == -1: ## current packet started DL when BS had nothing 
-                            #     self.dest_age[tuple(i)] = self.current_step
-                            if self.current_step<=MAX_AGE:
-                                self.dest_age[tuple(i)] = self.current_step
+                            #     self.dest_age[tuple(i)] = self.current_TTI
+                            if self.current_TTI<=MAX_AGE:
+                                self.dest_age[tuple(i)] = self.current_TTI
                             else:
                                 self.dest_age[tuple(i)] = MAX_AGE
                                 self.DL_age_limit = self.DL_age_limit + 1
@@ -562,11 +557,11 @@ class UAV_network():   # network of UAVs not just a single one
 
 
                         else: ## current packet started DL after BS had a packet
-                            # self.dest_age[tuple(i)] = self.current_step - self.curr_DL_gen[tuple(i)] # age change after packet fully sent
+                            # self.dest_age[tuple(i)] = self.current_TTI - self.curr_DL_gen[tuple(i)] # age change after packet fully sent
                             
                             ## MOD
-                            if (self.current_step - self.curr_DL_gen[tuple(i)])<=MAX_AGE:
-                                self.dest_age[tuple(i)] = self.current_step - self.curr_DL_gen[tuple(i)]
+                            if (self.current_TTI - self.curr_DL_gen[tuple(i)])<=MAX_AGE:
+                                self.dest_age[tuple(i)] = self.current_TTI - self.curr_DL_gen[tuple(i)]
                             else:
                                 self.dest_age[tuple(i)] = MAX_AGE
                                 self.DL_age_limit = self.DL_age_limit + 1
@@ -575,7 +570,7 @@ class UAV_network():   # network of UAVs not just a single one
                             
                             # record schedule only if (i) valid packet downloaded (ii) packet fully downloaded
                             if (random_episodes-self.episode_step)<100: ##means the last 100 episodes
-                                self.dqn_DL_schedule[tuple(i)].append([self.episode_step, self.current_step, self.curr_DL_gen[tuple(i)]])
+                                self.dqn_DL_schedule[tuple(i)].append([self.episode_step, self.current_TTI, self.curr_DL_gen[tuple(i)]])
                            
                         self.comp_DL_gen[tuple(i)] = self.curr_DL_gen[tuple(i)]
                         
@@ -586,11 +581,11 @@ class UAV_network():   # network of UAVs not just a single one
                     else: # self.RB_pending_DL[tuple(i)] != 0. new packet incomplete DL
                             
                         if self.comp_DL_gen[tuple(i)] == -1: ## no packet DL till now 
-                            # self.dest_age[tuple(i)] = self.current_step  
+                            # self.dest_age[tuple(i)] = self.current_TTI  
                             
                             ## MOD
-                            if (self.current_step)<=MAX_AGE:
-                                self.dest_age[tuple(i)] = self.current_step
+                            if (self.current_TTI)<=MAX_AGE:
+                                self.dest_age[tuple(i)] = self.current_TTI
                             else:
                                 self.dest_age[tuple(i)] = MAX_AGE
                                 self.DL_age_limit = self.DL_age_limit + 1
@@ -627,11 +622,11 @@ class UAV_network():   # network of UAVs not just a single one
                     if self.RB_pending_DL[tuple(i)] == 0: # means old packet was fully downloaded in this slot
                         # finish off DL of selected packet
                         if self.curr_DL_gen[tuple(i)] == -1: ## current packet started DL when BS had nothing 
-                            # self.dest_age[tuple(i)] = self.current_step
+                            # self.dest_age[tuple(i)] = self.current_TTI
                             
                             ## MOD
-                            if (self.current_step)<=MAX_AGE:
-                                self.dest_age[tuple(i)] = self.current_step
+                            if (self.current_TTI)<=MAX_AGE:
+                                self.dest_age[tuple(i)] = self.current_TTI
                             else:
                                 self.dest_age[tuple(i)] = MAX_AGE
                                 self.DL_age_limit = self.DL_age_limit + 1
@@ -640,11 +635,11 @@ class UAV_network():   # network of UAVs not just a single one
                             
                             
                         else: ## current packet started DL after BS had a packet
-                            # self.dest_age[tuple(i)] = self.current_step - self.curr_DL_gen[tuple(i)] # age change after packet fully sent
+                            # self.dest_age[tuple(i)] = self.current_TTI - self.curr_DL_gen[tuple(i)] # age change after packet fully sent
                             
                             ## MOD
-                            if (self.current_step - self.curr_DL_gen[tuple(i)])<=MAX_AGE:
-                                self.dest_age[tuple(i)] = self.current_step - self.curr_DL_gen[tuple(i)]
+                            if (self.current_TTI - self.curr_DL_gen[tuple(i)])<=MAX_AGE:
+                                self.dest_age[tuple(i)] = self.current_TTI - self.curr_DL_gen[tuple(i)]
                             else:
                                 self.dest_age[tuple(i)] = MAX_AGE
                                 self.DL_age_limit = self.DL_age_limit + 1
@@ -656,18 +651,18 @@ class UAV_network():   # network of UAVs not just a single one
                         
                             # record schedule only if (i) valid packet downloaded (ii) packet fully downloaded
                             if (random_episodes-self.episode_step)<100: ##means the last 100 episodes
-                                self.dqn_DL_schedule[tuple(i)].append([self.episode_step, self.current_step, self.curr_DL_gen[tuple(i)]])
+                                self.dqn_DL_schedule[tuple(i)].append([self.episode_step, self.current_TTI, self.curr_DL_gen[tuple(i)]])
 
                         if verbose:
                             print(f"pair {i} age at the end is {self.dest_age[tuple(i)]}. old packet fully DL. new values-curr_DL_gen[{i}]={self.curr_DL_gen[tuple(i)]}, comp_DL_gen[{i}]={self.comp_DL_gen[tuple(i)]}, curr_UL_gen[{i[0]}]={self.curr_UL_gen[i[0]]}, comp_UL_gen[{i[0]}]={self.comp_UL_gen[i[0]]}, RB_pending_DL[{i}]={self.RB_pending_DL[tuple(i)]},assigned_RB_DL = {assigned_RB_DL}, remaining_RB_DL={remaining_RB_DL}\n")
                             
                     else: # self.RB_pending_DL[tuple(i)] != 0: # means old packet wasn't fully downloaded in this slot
                         if self.curr_DL_gen[tuple(i)] == -1: ## current packet started DL when BS had nothing 
-                            # self.dest_age[tuple(i)] = self.current_step
+                            # self.dest_age[tuple(i)] = self.current_TTI
                             
                             ## MOD
-                            if (self.current_step)<=MAX_AGE:
-                                self.dest_age[tuple(i)] = self.current_step
+                            if (self.current_TTI)<=MAX_AGE:
+                                self.dest_age[tuple(i)] = self.current_TTI
                             else:
                                 self.dest_age[tuple(i)] = MAX_AGE
                                 self.DL_age_limit = self.DL_age_limit + 1
@@ -695,11 +690,11 @@ class UAV_network():   # network of UAVs not just a single one
 
             else: # no RB remaining
                 if self.curr_DL_gen[tuple(i)] == -1: ## current packet started DL when BS had nothing 
-                    # self.dest_age[tuple(i)] = self.current_step
+                    # self.dest_age[tuple(i)] = self.current_TTI
                     
                     ## MOD
-                    if (self.current_step)<=MAX_AGE:
-                        self.dest_age[tuple(i)] = self.current_step
+                    if (self.current_TTI)<=MAX_AGE:
+                        self.dest_age[tuple(i)] = self.current_TTI
                     else:
                         self.dest_age[tuple(i)] = MAX_AGE
                         self.DL_age_limit = self.DL_age_limit + 1
@@ -728,11 +723,11 @@ class UAV_network():   # network of UAVs not just a single one
                 if verbose:                
                     print(f"\npair {i} age at the beginning is {self.dest_age[tuple(i)]}")
                 if self.curr_DL_gen[tuple(i)] == -1: ## current packet started DL when BS had nothing 
-                    # self.dest_age[tuple(i)] = self.current_step
+                    # self.dest_age[tuple(i)] = self.current_TTI
                     
                     ## MOD
-                    if (self.current_step)<=MAX_AGE:
-                        self.dest_age[tuple(i)] = self.current_step
+                    if (self.current_TTI)<=MAX_AGE:
+                        self.dest_age[tuple(i)] = self.current_TTI
                     else:
                         self.dest_age[tuple(i)] = MAX_AGE
                         self.DL_age_limit = self.DL_age_limit + 1
@@ -783,16 +778,17 @@ class UAV_network():   # network of UAVs not just a single one
                         print(f"user {i} completed UL in its prev attempt. old values-curr_UL_gen[{i}] = {self.curr_UL_gen[i]}, comp_UL_gen[{i}] = {self.comp_UL_gen[i]}, RB_pending_UL[{i}] = {self.RB_pending_UL[i]}, remaining_RB_UL = {remaining_RB_UL}.")
                     
                     # new packet details started
-                    if self.current_step%self.periodicity[i]==0: # generate at will has period 1 so %=0
-                        last_pack_generated = self.current_step  # generation time of the packet sampled now
-                        # print(f"last_pack_generated 1 = {last_pack_generated}. self.current_step%self.periodicity[i]={self.current_step%self.periodicity[i]}")
+                    # if self.current_TTI%self.periodicity[i]==0: # generate at will has period 1 so %=0
+                    if True: ## always true
+                        last_pack_generated = self.current_TTI  # generation time of the packet sampled now
+                        # print(f"last_pack_generated 1 = {last_pack_generated}. self.current_TTI%self.periodicity[i]={self.current_TTI%self.periodicity[i]}")
                     else:
-                        last_pack_generated = self.periodicity[i]*max(math.floor(self.current_step/self.periodicity[i]), 1) ## max added so that the result is never 0 as our slots start from 1. so periodicity of 2 means 2,4,6,8
-                        # print(f"last_pack_generated 2 = {last_pack_generated}. self.current_step%self.periodicity[i]={self.current_step%self.periodicity[i]}")
+                        last_pack_generated = self.periodicity[i]*max(math.floor(self.current_TTI/self.periodicity[i]), 1) ## max added so that the result is never 0 as our slots start from 1. so periodicity of 2 means 2,4,6,8
+                        # print(f"last_pack_generated 2 = {last_pack_generated}. self.current_TTI%self.periodicity[i]={self.current_TTI%self.periodicity[i]}")
 
                     
-                    if self.current_step >= last_pack_generated: # else will stay -1
-                        self.curr_UL_gen[i]  = last_pack_generated # self.current_step # sample at will, so new packet generated and sampled only if current time and last generated time is feasible
+                    if self.current_TTI >= last_pack_generated: # else will stay -1
+                        self.curr_UL_gen[i]  = last_pack_generated # self.current_TTI # sample at will, so new packet generated and sampled only if current time and last generated time is feasible
                     
                     if verbose:
                         print(f"last_pack_generated = {last_pack_generated}")                    
@@ -807,11 +803,11 @@ class UAV_network():   # network of UAVs not just a single one
                     if self.RB_pending_UL[i] == 0: # means packet was fully uploaded in this slot
                         # finish off details of completed packet
                         if self.curr_UL_gen[i] == -1: ## current packet started UL when device had nothing 
-                            # self.UAV_age[i] = self.current_step
+                            # self.UAV_age[i] = self.current_TTI
                             
                             ## MOD
-                            if (self.current_step)<=MAX_AGE:
-                                self.UAV_age[i] = self.current_step
+                            if (self.current_TTI)<=MAX_AGE:
+                                self.UAV_age[i] = self.current_TTI
                             else:
                                 self.UAV_age[i] = MAX_AGE 
                                 self.UL_age_limit = self.UL_age_limit + 1
@@ -819,11 +815,11 @@ class UAV_network():   # network of UAVs not just a single one
                                     print(f"MAX_AGE for UL {i}, DL_age_limit = {self.DL_age_limit}, UL_age_limit = {self.UL_age_limit}") 
                             
                         else: ## current packet started UL after device had a packet
-                            # self.UAV_age[i] = self.current_step - self.curr_UL_gen[i] # age change after packet fully sent      
+                            # self.UAV_age[i] = self.current_TTI - self.curr_UL_gen[i] # age change after packet fully sent      
                             
                             ## MOD
-                            if (self.current_step - self.curr_UL_gen[i])<=MAX_AGE:
-                                self.UAV_age[i] = self.current_step - self.curr_UL_gen[i]
+                            if (self.current_TTI - self.curr_UL_gen[i])<=MAX_AGE:
+                                self.UAV_age[i] = self.current_TTI - self.curr_UL_gen[i]
                             else:
                                 self.UAV_age[i] = MAX_AGE 
                                 self.UL_age_limit = self.UL_age_limit + 1
@@ -835,7 +831,7 @@ class UAV_network():   # network of UAVs not just a single one
                             
                             # record schedule only if (i) valid packet downloaded (ii) packet fully downloaded
                             if (random_episodes-self.episode_step)<100: ##means the last 100 episodes
-                                self.dqn_UL_schedule[i].append([self.episode_step, self.current_step, self.curr_UL_gen[i]])
+                                self.dqn_UL_schedule[i].append([self.episode_step, self.current_TTI, self.curr_UL_gen[i]])
                         
                         # new packet done
                         
@@ -870,11 +866,11 @@ class UAV_network():   # network of UAVs not just a single one
                     if self.RB_pending_UL[i] == 0: # means the partial packet was fully uploaded in this slot
                         # finish off details of completed packet
                         if self.curr_UL_gen[i] == -1: ## current packet started UL when device had nothing 
-                            # self.UAV_age[i] = self.current_step
+                            # self.UAV_age[i] = self.current_TTI
                             
                            ## MOD
-                            if (self.current_step)<=MAX_AGE:
-                                self.UAV_age[i] = self.current_step
+                            if (self.current_TTI)<=MAX_AGE:
+                                self.UAV_age[i] = self.current_TTI
                             else:
                                 self.UAV_age[i] = MAX_AGE 
                                 self.UL_age_limit = self.UL_age_limit + 1
@@ -882,11 +878,11 @@ class UAV_network():   # network of UAVs not just a single one
                                     print(f"MAX_AGE for UL {i}, DL_age_limit = {self.DL_age_limit}, UL_age_limit = {self.UL_age_limit}") 
                             
                         else: ## current packet started UL after device had a packet
-                            # self.UAV_age[i] = self.current_step - self.curr_UL_gen[i] # age change after packet fully sent       
+                            # self.UAV_age[i] = self.current_TTI - self.curr_UL_gen[i] # age change after packet fully sent       
                             
                             ## MOD
-                            if (self.current_step - self.curr_UL_gen[i])<=MAX_AGE:
-                                self.UAV_age[i] = self.current_step - self.curr_UL_gen[i]
+                            if (self.current_TTI - self.curr_UL_gen[i])<=MAX_AGE:
+                                self.UAV_age[i] = self.current_TTI - self.curr_UL_gen[i]
                             else:
                                 self.UAV_age[i] = MAX_AGE 
                                 self.UL_age_limit = self.UL_age_limit + 1
@@ -897,7 +893,7 @@ class UAV_network():   # network of UAVs not just a single one
                             
                             # record schedule only if (i) valid packet downloaded (ii) packet fully downloaded
                             if (random_episodes-self.episode_step)<100: ##means the last 100 episodes
-                                self.dqn_UL_schedule[i].append([self.episode_step, self.current_step, self.curr_UL_gen[i]])
+                                self.dqn_UL_schedule[i].append([self.episode_step, self.current_TTI, self.curr_UL_gen[i]])
 
                         if verbose:
                             print(f"user {i} age at the end is {self.UAV_age[i]}. old packet fully UL-new values curr_UL_gen[{i}] = {self.curr_UL_gen[i]}, comp_UL_gen[{i}] = {self.comp_UL_gen[i]}, RB_pending_UL[{i}] = {self.RB_pending_UL[i]}, assigned_RB_UL = {assigned_RB_UL}, remaining_RB_UL = {remaining_RB_UL}\n")
@@ -957,22 +953,22 @@ class UAV_network():   # network of UAVs not just a single one
                     
             ## uploading process ends
         
-        # print(f"slot {self.current_step} ended with state {self._state}")        
+        # print(f"slot {self.current_TTI} ended with state {self._state}")        
                 
       
         self.state = self.get_current_state() # update state after every action     
         for x in self.state:
             assert (x <= MAX_AGE) 
         dest_sum_age = np.sum(list(self.dest_age.values()))
-        self.current_step += 1 # for next slot
+        self.current_TTI += 1 # for next slot
         award = -dest_sum_age
         
         if verbose:
-            print(f'current_step = {self.current_step-1} has award {award} for env {self.name}')
-            print(f'next current_step will be = {self.current_step} with state {self.get_current_state()}') #, sample_time = {self.sample_time}')
+            print(f'current_TTI = {self.current_TTI-1} has award {award} for env {self.name}')
+            print(f'next current_TTI will be = {self.current_TTI} with state {self.get_current_state()}') #, sample_time = {self.sample_time}')
 
         
-        if self.current_step < self.MAX_STEPS + 1:        ## has to run for MAX_STEPS, i.e. an action has to be chosen MAX_STEPS times
+        if self.current_TTI < self.MAX_STEPS + 1:        ## has to run for MAX_STEPS, i.e. an action has to be chosen MAX_STEPS times
             self.episode_ended = False
             return (np.array([self.state], dtype=np.float32))
         else:
