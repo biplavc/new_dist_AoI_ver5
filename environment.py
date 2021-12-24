@@ -32,11 +32,11 @@ tempdir = tempfile.gettempdir()
 random.seed(42)
 
 verbose = False
-verbose = True
-random_episodes = 1 # all schedulers except dqn runs this number of times
+# verbose = True
+random_episodes = 10 # all schedulers except dqn runs this number of times
 log_interval_random = 1 if random_episodes<5 else random_episodes//5 # log the results after this many episodes
 
-min_steps = 4
+min_steps = 10_000
 max_steps = min_steps + 1
 interval  = 1
 
@@ -55,8 +55,8 @@ MAX_AGE = max_steps + 1 # 20
 coverage_capacity = 3 # max users 1 UAV can cover, used in create_graph_1
 
 set_gamma = 1
-RB_total_UL = 1 # L R_u, sample. has to be less than number of tx_users
-RB_total_DL = 2 # K R_d, update. has to be less than number of tx_rx_pairs
+RB_total_UL = 10 # L R_u, sample. has to be less than number of tx_users
+RB_total_DL = 20 # K R_d, update. has to be less than number of tx_rx_pairs
 
 
 class UAV_network():   # network of UAVs not just a single one
