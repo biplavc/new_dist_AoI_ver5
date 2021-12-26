@@ -621,8 +621,8 @@ def pf_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_los
     pickle.dump(unutilized_RB_DL, open(folder_name + "/" + deployment + "/" + str(I) + "U_pf_unutilized_RB_DL.pickle", "wb"))
     pickle.dump(unutilized_RB_UL, open(folder_name + "/" + deployment + "/" + str(I) + "U_pf_unutilized_RB_UL.pickle", "wb"))
     
-    pickle.dump(pf_UL_schedule, open(folder_name + "/" + deployment + "/" + "pf_UL_schedule" + str(I) + "U.pickle", "wb"))    
-    pickle.dump(pf_DL_schedule, open(folder_name + "/" + deployment + "/" + "pf_DL_schedule" + str(I) + "U.pickle", "wb"))  
+    pickle.dump(pf_UL_schedule, open(folder_name + "/" + deployment + "/" + "pf_UL_schedule_" + str(I) + "U.pickle", "wb"))    
+    pickle.dump(pf_DL_schedule, open(folder_name + "/" + deployment + "/" + "pf_DL_schedule_" + str(I) + "U.pickle", "wb"))  
     
     print("\npf scheduling ", deployment, " placement, ", I, " . MEAN of final_step_rewards = ", np.mean(final_step_rewards), ". MEAN of overall_ep_reward = ", np.mean(overall_ep_reward), " MIN and MAX of overall_ep_reward = ", np.min(overall_ep_reward),", ", np.max(overall_ep_reward),  " ... MEAN of overall_ep_peak_reward = ", np.mean(overall_ep_peak_reward), " MIN and MAX of overall_ep_peak_reward = ", np.min(overall_ep_peak_reward),", ", np.max(overall_ep_peak_reward), ". Similarly for final_step_UAV_rewards - MEAN = ",{np.mean(final_step_UAV_rewards)}, ", MIN and MAX of final_step_UAV_rewards = ", np.min(final_step_UAV_rewards),", ", np.max(final_step_UAV_rewards)," end with final state of ", eval_env.state, " with shape ", np.shape(eval_env.state), ", min PDR_upload = ", {np.min(PDR_upload)}, ", max PDR_upload = ", {np.max(PDR_upload)}, ", min PDR_download = ", {np.min(PDR_download)}, ", max PDR_upload = ", {np.max(PDR_download)}, ", max_total_packet_lost_upload = ", np.max(total_packet_lost_upload), ", min_total_packet_lost_upload = ", np.min(total_packet_lost_upload), ", max_total_packet_lost_download = ", np.max(total_packet_lost_download), ", min_total_packet_lost_download = ", np.min(total_packet_lost_download))
     

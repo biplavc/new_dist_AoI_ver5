@@ -107,25 +107,25 @@ def do_scheduling(deployment, I, scheduler):
                 adj_matrix = np.zeros((I,I))
                 for i in range(I):
                     
-            #         if i==0: ## 0, 14 first devices in the feeder, will connect to 2 devices on its right
-            #             adj_matrix[i][1] = 1
-            #             adj_matrix[i][13] = 1
+                    if i==0: ## 0, 14 first devices in the feeder, will connect to 2 devices on its right
+                        adj_matrix[i][1] = 1
+                        adj_matrix[i][13] = 1
                         
-            #         elif i==13: ## last devices in the feeder, will connect to 2 devices on its left
-            #             adj_matrix[i][12] = 1
-            #             adj_matrix[i][0] = 1
+                    elif i==13: ## last devices in the feeder, will connect to 2 devices on its left
+                        adj_matrix[i][12] = 1
+                        adj_matrix[i][0] = 1
                         
-            #         elif i==14: ## last devices in the feeder, will connect to 2 devices on its left
-            #             adj_matrix[i][15] = 1
-            #             adj_matrix[i][27] = 1
+                    elif i==14: ## last devices in the feeder, will connect to 2 devices on its left
+                        adj_matrix[i][15] = 1
+                        adj_matrix[i][27] = 1
                         
-            #         elif i==27: ## last devices in the feeder, will connect to 2 devices on its left
-            #             adj_matrix[i][26] = 1
-            #             adj_matrix[i][14] = 1
+                    elif i==27: ## last devices in the feeder, will connect to 2 devices on its left
+                        adj_matrix[i][26] = 1
+                        adj_matrix[i][14] = 1
                                             
-            #         else:
-            #             adj_matrix[i][i-1] = 1
-            #             adj_matrix[i][(i+1)%I] = 1
+                    else:
+                        adj_matrix[i][i-1] = 1
+                        adj_matrix[i][(i+1)%I] = 1
                         
             # if topology == "new_ring_1_connection": ## each device connected to two of the nearest ones in groups of 14. newer
             #     J = I/2 ## devices per feeder, we have 2 feeders
