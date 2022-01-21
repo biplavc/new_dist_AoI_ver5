@@ -525,7 +525,7 @@ def rr_new_scheduling(I, drones_coverage, folder_name, deployment, packet_upload
             # time.sleep(10)
             print(f"\n*****************************************************\n")
 
-    print(f"rr_UL_schedule = {rr_UL_schedule}, rr_DL_schedule = {rr_DL_schedule}")
+    # print(f"rr_UL_schedule = {rr_UL_schedule}, rr_DL_schedule = {rr_DL_schedule}")
     
     pickle.dump(best_episodes_average, open(folder_name + "/" + deployment + "/" + str(I) + "U_rr_episodes_average.pickle", "wb"))
     pickle.dump(best_episodes_peak, open(folder_name + "/" + deployment + "/" + str(I) + "U_rr_best_episodes_peak.pickle", "wb"))

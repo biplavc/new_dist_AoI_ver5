@@ -36,17 +36,18 @@ verbose = False
 random_episodes = 10 # all schedulers except dqn runs this number of times
 log_interval_random = 1 if random_episodes<5 else random_episodes//5 # log the results after this many episodes
 
-min_steps = 10_000
+min_steps = 5
 max_steps = min_steps + 1
 interval  = 1
 
 delay_include = 1 # 0 for slot and 1 to include it
-numerology = 3
-modulation_index  = [0,1,2] # simple index to get the index of modulation_index
+numerology = 2
+modulation_index  = [0,1,2,3] # simple index to get the index of modulation_index
 packet_size       = 150 # bits
-modulation_orders = [4,6,8]
-base_throughput = 136.96 # in Mbps
-throughputs = [base_throughput, 1.5*base_throughput, 2*base_throughput]
+# modulation_orders = [4,6,8]
+base_throughputs = [17.12, 34.24, 68.48] ## for \mu =0,1,2 respectively
+base_throughput = base_throughputs[numerology] # in Mbps
+throughputs = [base_throughput, 2*base_throughput, 3*base_throughput, 4*base_throughput]
 np.set_printoptions(precision=2) # https://stackoverflow.com/questions/12439753/set-global-output-precision-python/38447064
 
 

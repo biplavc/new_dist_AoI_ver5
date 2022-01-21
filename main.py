@@ -420,7 +420,7 @@ if __name__ == '__main__':
         
     print("execution started at ", now_str_1, file = open(folder_name + "/results.txt", "a"), flush = True)
 
-    print("random_episodes = ", random_episodes,", RB_total_UL = ", RB_total_UL, ", RB_total_DL = ", RB_total_DL,",  min_steps = ", min_steps, ", interval = ", interval, ", max_steps = ", max_steps, ", coverage_capacity = ", coverage_capacity, ", L = ", L, ", B = ", B, ", R = ", R, ", r = ", r, "\n", file = open(folder_name + "/results.txt", "a"), flush = True)
+    print("random_episodes = ", random_episodes,", RB_total_UL = ", RB_total_UL, ", RB_total_DL = ", RB_total_DL,",  min_steps = ", min_steps, ", interval = ", interval, ", max_steps = ", max_steps, ", numerology = ", numerology, ", throughputs = ", throughputs, "\n", file = open(folder_name + "/results.txt", "a"), flush = True)
 
     deployments = ["RP"] #, "RP"] #, "MDS"]
     

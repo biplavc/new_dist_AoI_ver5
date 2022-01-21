@@ -592,7 +592,7 @@ def pf_scheduling(I, drones_coverage, folder_name, deployment, packet_upload_los
             # time.sleep(10)
             print(f"\n*****************************************************\n")
 
-    print(f"pf_UL_schedule = {pf_UL_schedule}, pf_DL_schedule = {pf_DL_schedule}")
+    # print(f"pf_UL_schedule = {pf_UL_schedule}, pf_DL_schedule = {pf_DL_schedule}")
 
 
     pickle.dump(age_dist_UAV_slot_wise, open(folder_name + "/" + deployment + "/" + str(I) + "U_pf_age_dist_UAV_slot_wise.pickle", "wb"))

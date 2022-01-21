@@ -443,7 +443,7 @@ def random_scheduling(I, drones_coverage, folder_name, deployment, packet_upload
             
             
 
-    print(f"random_UL_schedule = {random_UL_schedule}, random_DL_schedule = {random_DL_schedule}")
+    # print(f"random_UL_schedule = {random_UL_schedule}, random_DL_schedule = {random_DL_schedule}")
     
     pickle.dump(best_episodes_average, open(folder_name + "/" + deployment + "/" + str(I) + "U_random_best_episodes_average.pickle", "wb"))
     pickle.dump(best_episodes_peak, open(folder_name + "/" + deployment + "/" + str(I) + "U_random_best_episodes_peak.pickle", "wb"))
