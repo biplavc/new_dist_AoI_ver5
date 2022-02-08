@@ -56,8 +56,8 @@ MAX_AGE = max_steps + 1 # 20
 coverage_capacity = 3 # max users 1 UAV can cover, used in create_graph_1
 
 set_gamma = 1
-RB_total_UL = 10 # L R_u, sample. has to be less than number of tx_users
-RB_total_DL = 20 # K R_d, update. has to be less than number of tx_rx_pairs
+RB_total_UL = 5 # L R_u, sample. has to be less than number of tx_users
+RB_total_DL = 10 # K R_d, update. has to be less than number of tx_rx_pairs
 
 
 class UAV_network():   # network of UAVs not just a single one

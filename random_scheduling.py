@@ -485,6 +485,9 @@ def random_scheduling(I, drones_coverage, folder_name, deployment, packet_upload
     print(f"random sorted_best_episodes_peak = {sorted_best_episodes_peak}", file = open(folder_name + "/best_episodes.txt", "a"), flush = True)
     print(f"\n\n\n ------------------------------------------------", file = open(folder_name + "/best_episodes.txt", "a"), flush = True)
 
+    # print(f"numerology = {numerology}, overall_ep_reward = {overall_ep_reward}, mean(overall_ep_reward) = {np.mean(overall_ep_reward)}")
+    
+    # print(f"numerology = {numerology}, age_dist_UAV = {age_dist_UAV}, age_dist_dest = {age_dist_dest}")
     
     assert(len(final_step_rewards)==len(final_step_rewards))
     return overall_ep_reward, final_step_rewards, np.mean(overall_ep_reward)
